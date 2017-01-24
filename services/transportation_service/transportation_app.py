@@ -9,6 +9,8 @@ import random
 from logger import logger
 import validators
 
+app = Flask(__name__)
+
 
 def validate_new_event_request(function):
     @wraps(function)
@@ -20,14 +22,17 @@ def validate_new_event_request(function):
                 logger.error(request.remote_addr + ' called /new_event with invalid json')
                 raise ValueError('')
 
+            api_key = '234fa0234nasfkj238dsf'
+            if request_json['key'] != api_key:
+                logger.error(request.remote_addr + ' called with invalid api key')
+                return abort(401, json.dumps({'reason': 'Invalid API Key'}))
+
         except ValueError as e:
             logger.error(e.message)
             return abort(400, json.dumps({'reason': 'Invalid POST Data'}))
         return function(*args, **kwargs)
 
     return check_json
-
-app = Flask(__name__)
 
 
 def nice_json(arg, status_code):
@@ -71,6 +76,7 @@ def do_task(request_json):
 
 
 @app.route('/new_event', methods=['POST'])
+@validate_new_event_request
 def new_event():
     try:
         request_json = json.loads(request.data)

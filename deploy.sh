@@ -78,7 +78,7 @@ function tests(){
 first_arg=$1;
 one=1;
 
-if [[ $first_arg -eq $one ]];then
+if [[ $first_arg -eq $one ]]; then
     echo "Runnig just tests"
     tests
 else

@@ -5,6 +5,7 @@ import json
 
 class TestPOIsMS(unittest.TestCase):
     def setUp(self):
+        self.api_key = '234fa0234nasfkj238dsf'
         self.transportation_api_url = 'http://0.0.0.0'
         self.transportation_api_port = '5001'
         self.transportation_api_end_point = 'new_event'
@@ -53,7 +54,7 @@ class TestPOIsMS(unittest.TestCase):
         uri_end_point = "{}:{}/{}".format(self.transportation_api_url, self.transportation_api_port,
                                           self.transportation_api_end_point)
 
-        post_data = json.dumps({'key': 'api_key',
+        post_data = json.dumps({'key': self.api_key,
                                 'response_at': '',
                                 'request_id': ''
                                 })
