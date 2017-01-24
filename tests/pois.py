@@ -6,7 +6,7 @@ import json
 class TestPOIsMS(unittest.TestCase):
     def setUp(self):
         self.transportation_api_url = 'http://0.0.0.0'
-        self.transportation_api_port = '5002'
+        self.transportation_api_port = '5001'
         self.transportation_api_end_point = 'new_event'
 
     def test_new_event_method_not_allowed(self):
@@ -53,9 +53,26 @@ class TestPOIsMS(unittest.TestCase):
         uri_end_point = "{}:{}/{}".format(self.transportation_api_url, self.transportation_api_port,
                                           self.transportation_api_end_point)
 
-        post_data = json.dumps({'json_key': 'json_string'})
+        post_data = json.dumps({'key': 'api_key',
+                                'response_at': '',
+                                'request_id': ''
+                                })
         reply = requests.post(uri_end_point, data=post_data)
         self.assertEqual(reply.status_code, 201)
+
+    def test_new_event_post_invalid_json_format(self):
+        """
+
+        :return:
+        """
+        uri_end_point = "{}:{}/{}".format(self.transportation_api_url, self.transportation_api_port,
+                                          self.transportation_api_end_point)
+
+        post_data = json.dumps({'key': 'api_key',
+                                'response_at': '',
+                                })
+        reply = requests.post(uri_end_point, data=post_data)
+        self.assertEqual(reply.status_code, 400)
 
 
 if __name__ == '__main__':

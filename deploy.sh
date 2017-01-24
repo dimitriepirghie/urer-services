@@ -75,7 +75,10 @@ function tests(){
     killall python
 }
 
-if [ $1==1 ];then
+first_arg=$1;
+one=1;
+
+if [[ $first_arg -eq $one ]];then
     echo "Runnig just tests"
     tests
 else

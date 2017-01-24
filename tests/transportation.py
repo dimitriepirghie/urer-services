@@ -53,7 +53,10 @@ class TestTransportationMS(unittest.TestCase):
         uri_end_point = "{}:{}/{}".format(self.transportation_api_url, self.transportation_api_port,
                                           self.transportation_api_end_point)
 
-        post_data = json.dumps({'json_key': 'json_string'})
+        post_data = json.dumps({'key': 'api_key',
+                                'response_at': '',
+                                'request_id': ''
+                                })
         reply = requests.post(uri_end_point, data=post_data)
         self.assertEqual(reply.status_code, 201)
 
