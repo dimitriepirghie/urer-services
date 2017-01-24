@@ -62,17 +62,23 @@ function run_tests(){
     return 0
 }
 
-launch_services
+function tests(){
+    launch_services
+    sleep 5
+    run_tests
 
-sleep 5
+    if [ $? -ne 0 ]; then
+        echo "Tests failed, deploy aborted"
+        exit 1
+    fi
 
-run_tests
+    killall python
+}
 
-killall python
-
-if [ $? -ne 0 ]; then
-    echo "Tests failed, deploy aborted"
-    exit 1
+if [ $1==1 ];then
+    echo "Runnig just tests"
+    tests
+else
+    tests
+    deploy
 fi
-
-deploy
