@@ -21,6 +21,7 @@ method allowed: POST, expected data as json
 ```
 
 #### Mandatory JSON Keys:
+- *key* - API Key (234fa0234nasfkj238dsf)
 - *response_at* - endpoint where recommandation is sent with POST
 - *request_id* -  key-value which is sent in recommandation JSON
 - *radius* - area in meters
