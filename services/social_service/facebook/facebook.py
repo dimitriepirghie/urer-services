@@ -80,7 +80,7 @@ def facebook_authorized():
 
     friends_list = str()
     for i in friends.data['data']:
-        friends_list += i.data['name'] + ', '
+        friends_list += i['name'] + ', '
     friends_list = friends_list[:-2]
 
     if 'email' not in me.data:
@@ -98,4 +98,6 @@ def get_facebook_oauth_token():
 
 
 if __name__ == '__main__':
-    app.run()
+    import os
+    port = int(os.environ.get('PORT', 5002))
+    app.run(host='0.0.0.0', port=port, debug=True)

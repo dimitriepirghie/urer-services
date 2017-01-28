@@ -1,3 +1,4 @@
 Flask
 requests
 validators
+flask_oauthlib

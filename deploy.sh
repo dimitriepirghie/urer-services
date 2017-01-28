@@ -78,6 +78,10 @@ function tests(){
 first_arg=$1;
 one=1;
 
+
+deploy
+exit 1
+
 if [[ $first_arg -eq $one ]]; then
     echo "Runnig just tests"
     tests

@@ -8,8 +8,9 @@ from logger import logger
 import random
 import threading
 import validators
+from facebook.facebook import app
 
-app = Flask(__name__)
+# app = Flask(__name__)
 
 
 def validate_new_event_request(function):
