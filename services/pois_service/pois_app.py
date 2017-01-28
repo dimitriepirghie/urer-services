@@ -1,19 +1,19 @@
 import json
 import os
 import threading
-import time
 from functools import wraps
-import random
 from logger import logger
 import validators
 import requests
-from flask import Flask, request, make_response, abort
+from flask import Flask, request, make_response, abort, jsonify, current_app
 from external_api.GooglePlacesAPI import GooglePlacesAPI, allowed_search_parameters
 
 __author__ = 'Pirghie Dimitrie'
 __project__ = 'UReR'
 
 app = Flask(__name__)
+flask_app_context = app.app_context()
+flask_app_context.push()
 
 api_key = os.environ.get("POIS_API_KEY", None)
 GOOGLE_PLACES_API_KEY = os.environ.get("GOOGLE_PLACES_API_KEY", 'AIzaSyAb1qLl7Q-25BhSAnZWgMJ7YhLz6yZGjWk')
@@ -75,13 +75,26 @@ def do_task(request_json):
 
         logger.info('Try to find recommendation for request with id ' + str(request_id))
 
-        response = call_google_api(request_json=request_json)
+        response_from_google = call_google_api(request_json=request_json)
 
-        if not validators.url(response_at):
-            logger.error("Response at " + str(response_at) + ' not a valid url')
+        if 'ZERO_RESULTS' in response_from_google:
+            logger.info('Do not response, not results from google, request ' + str(request_id))
             return
 
-        post_reply = requests.post(response_at, data=json.dumps(response))
+        try:
+            response_from_google = json.loads(response_from_google)
+        except Exception as e:
+            logger.info("Response from google not as json, will be as string")
+
+        response = {'request_id': request_id,
+                    'result': response_from_google}
+
+        '''if not validators.url(response_at):
+            logger.error("Response at " + str(response_at) + ' not a valid url')
+            return
+        '''
+
+        post_reply = requests.post(response_at, data=json.dumps(response), headers={'Content-type': 'application/json'})
 
         if 200 == post_reply.status_code:
             logger.info('Push request at ' + response_at + ' with id ' + str(request_id) + ' succeeded')
@@ -107,7 +120,7 @@ def new_event():
 
 if __name__ == '__main__':
     app_port = int(os.environ.get('PORT', 5001))
-    app.run(host='0.0.0.0', port=app_port, debug=True)
+    app.run(host='0.0.0.0', port=app_port, debug=True, threaded=True)
 
     """
     request = {'location': '47.171571, 27.574983',
