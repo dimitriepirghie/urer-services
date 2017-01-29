@@ -1,4 +1,4 @@
-**Request**
+- Request
 {
 	"user_id": 1,
 	"keywords": [
@@ -7,7 +7,7 @@
 	]
 }
 
-**Response**
+- Response
 {
   "machine learning": [
     {
