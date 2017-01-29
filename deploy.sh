@@ -18,7 +18,10 @@ function deploy(){
 
         *social*)
                 heroku_app_name="urer-social-service"
-            ;;    
+            ;;
+        *feed*)
+                heroku_app_name="urer-feed-service"
+            ;;
         esac
          echo "Deploy $service at app $heroku_app_name"
 

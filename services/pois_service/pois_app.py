@@ -5,8 +5,10 @@ from functools import wraps
 from logger import logger
 import validators
 import requests
-from flask import Flask, request, make_response, abort, jsonify, current_app
+from flask import Flask, request, make_response, abort
+# Our imports
 from external_api.GooglePlacesAPI import GooglePlacesAPI, allowed_search_parameters
+from nearby.NearByFriends import NearByFriends
 
 __author__ = 'Pirghie Dimitrie'
 __project__ = 'UReR'
@@ -42,7 +44,7 @@ def validate_new_event_request(function):
 
 
 def nice_json(arg, status_code):
-    response = make_response(json.dumps(arg, sort_keys = True, indent=4))
+    response = make_response(json.dumps(arg, sort_keys=True, indent=4))
     response.headers['Content-type'] = "application/json"
     return response, status_code
 
@@ -117,6 +119,31 @@ def new_event():
         return nice_json({'reason': 'Invalid POST Data'}, 400)
     return nice_json({'status': 'New event registered'}, 201)
 
+
+@app.route('/nearby', methods=['POST'])
+def nearby():
+    """
+
+    :return:
+    """
+    # JSON Request example
+    """
+    {
+        "user_id": "1322aa",
+        "response_at": "http://urer-client.herokuapp.com/receive/nearbyfriends",
+        "location": "47.171571, 27.574983",
+        "timestamp": 12312312
+    }
+    """
+
+    try:
+        nearby_post_data = json.loads(request.data)
+        nearby_friends_handler = NearByFriends(nearby_post_data)
+    except (ValueError, AttributeError) as e:
+        logger.error(e.message)
+        return nice_json(json.dumps(e.message), status_code=400)
+
+    return nice_json({'status': 'User location updated'}, 201)
 
 if __name__ == '__main__':
     app_port = int(os.environ.get('PORT', 5001))

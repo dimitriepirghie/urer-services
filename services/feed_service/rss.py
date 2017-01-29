@@ -4,7 +4,7 @@ import threading
 
 import feedparser
 from concurrent import futures
-from flask import Flask, request, abort
+from flask import Flask, request, abort, jsonify
 
 from rss_lists import rss_full_list as __rss_full_list
 
@@ -76,7 +76,8 @@ def filter(keywords):
                             frequency_dict[keyword].append(d)
 
     sorted_dict = dict(sorted(frequency_dict.iteritems(), key=lambda x: lambda y: x[y]['frequency'], reverse=True))
-    return json.dumps(sorted_dict)
+    # jsonify formats formats json and add Content-Type: plain-text/json
+    return jsonify(sorted_dict) # json.dumps(sorted_dict)
 
 
 @app.route('/feeder', methods=['POST'])
@@ -91,8 +92,9 @@ def feeder():
 
 
 if __name__ == "__main__":
-    __feed_()
+
+    threading.Thread(target=__feed_).start()
     threading.Thread(target=__crawler_thread_).start()
 
     app_port = int(__import__("os").environ.get('PORT', 5001))
-    app.run(host='0.0.0.0', port=app_port, debug=True, threaded=True)
+    app.run(host='0.0.0.0', port=app_port, debug=True)
