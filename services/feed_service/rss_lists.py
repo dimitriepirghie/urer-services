@@ -244,6 +244,7 @@ __rss_others = [
     "http://www.nba.com/jazz/rss.xml",
     "http://www.newyorker.com/feed/humor",
     "http://www.nationalgeographic.com/adventure/nga.xml",
+    "http://news.google.com/?output=rss",
 ]
 
 rss_full_list = list(itertools.chain(
