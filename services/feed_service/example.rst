@@ -1,6 +1,5 @@
 **Request**
-.. code:: python
-{
+:{
 	"user_id": 1,
 	"keywords": [
 		"machine learning",
@@ -9,8 +8,7 @@
 }
 
 **Response**
-.. code:: python
-{
+:{
   "machine learning": [
     {
       "link": "http://feeds.nature.com/~r/NatureLatestResearch/~3/IcoNJqmo2pI/nature21054",
