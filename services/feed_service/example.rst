@@ -1,4 +1,5 @@
 **Request**
+.. code:: python
 {
 	"user_id": 1,
 	"keywords": [
@@ -8,6 +9,7 @@
 }
 
 **Response**
+.. code:: python
 {
   "machine learning": [
     {
