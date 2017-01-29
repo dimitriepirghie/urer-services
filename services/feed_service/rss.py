@@ -43,7 +43,7 @@ def __crawler_thread_():
         __backup_feeds[:] = list()
 
 
-# TODO: Implement specific filterting for each category (computer, art, etc.)
+# TODO: Implement specific filtering for each category (computer, art, etc.)
 def filter(keywords):
     feeds_copy = __backup_feeds
     if not feeds_copy:  # If the crawler thread is not running right now...
