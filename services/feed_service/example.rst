@@ -1,14 +1,14 @@
 **Request**
-:{
+:code:`{
 	"user_id": 1,
 	"keywords": [
 		"machine learning",
 		"big data"
 	]
-}
+}`
 
 **Response**
-:{
+:code:`{
   "machine learning": [
     {
       "link": "http://feeds.nature.com/~r/NatureLatestResearch/~3/IcoNJqmo2pI/nature21054",
@@ -18,4 +18,4 @@
       "title": "A solution to the single-question crowd wisdom problem"
     }
   ]
-}
+}`
