@@ -1,2 +1,2 @@
-concurrent
+futures
 feedparser
