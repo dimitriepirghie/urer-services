@@ -11,8 +11,8 @@ from SPARQLWrapper import SPARQLWrapper, JSON, POST, GET
 
 from rss_lists import rss_full_list as __rss_full_list
 
-# sparql = SPARQLWrapper("https://dydra.com/dimavascan94/urer/sparql")
-sparql = SPARQLWrapper("https://dydra.com/dimavascan94/test/sparql")
+# sparql = SPARQLWrapper("https://dydra.com/dimavascan94/test/sparql")
+sparql = SPARQLWrapper("https://dydra.com/dimavascan94/urer/sparql")
 sparql.setReturnFormat(JSON)
 sparql.setHTTPAuth('Basic')
 sparql.setCredentials('dimavascan94', 'taipwadeurer')
@@ -130,6 +130,7 @@ def feed_articles(user_id, keywords):
             sparql.setMethod(GET)
             sparql.setQuery("""
                 SELECT ?feedLink ?title ?description ?creationDate ?sourceLink ?attachment
+                FROM <https://urrer.me/users>
                 WHERE {
                         ?feedLink sioc:has_creator '%d';
                         dc:title ?title;
@@ -182,7 +183,9 @@ def feed_articles(user_id, keywords):
                 sparql.setQuery("""
                     INSERT DATA
                     {
-                        %s
+                        GRAPH <https://urrer.me/users> {
+                            %s
+                        }
                     }""" % (query))
                 sparql.query()
         except:
