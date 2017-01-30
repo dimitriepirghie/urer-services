@@ -120,6 +120,10 @@ def new_event():
     return nice_json({'status': 'New event registered'}, 201)
 
 
+def do_near_by(near_by_data):
+    nearby_friends_handler = NearByFriends(near_by_data)
+
+
 @app.route('/nearby', methods=['POST'])
 def nearby():
     """
@@ -138,7 +142,8 @@ def nearby():
 
     try:
         nearby_post_data = json.loads(request.data)
-        nearby_friends_handler = NearByFriends(nearby_post_data)
+        nearby_thread = threading.Thread(target=do_near_by, args=(nearby_post_data, ))
+        nearby_thread.start()
     except (ValueError, AttributeError) as e:
         logger.error(e.message)
         return nice_json(json.dumps(e.message), status_code=400)

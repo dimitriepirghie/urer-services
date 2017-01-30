@@ -1,6 +1,8 @@
-from flask import Flask, redirect, url_for, session, request
+from __future__ import print_function
+from flask import Flask, redirect, url_for, session, request, abort
 from flask_oauthlib.client import OAuth, OAuthException
-
+from SPARQLWrapper import SPARQLWrapper, JSON, POST, GET
+from RDFQueries import facebook_link_account_query, facebook_select_user_by_fb_id
 
 FACEBOOK_APP_ID = '1266953439991986'
 FACEBOOK_APP_SECRET = '8cefcc09304059e1139f54f9fb03e20d'
@@ -10,6 +12,12 @@ app = Flask(__name__)
 app.debug = True
 app.secret_key = 'development'
 oauth = OAuth(app)
+
+# sparql = SPARQLWrapper("https://dydra.com/dimavascan94/urer/sparql")
+sparql = SPARQLWrapper("https://dydra.com/dimavascan94/test/sparql")
+sparql.setReturnFormat(JSON)
+sparql.setHTTPAuth('Basic')
+sparql.setCredentials('dimavascan94', 'taipwadeurer')
 
 
 """
@@ -48,9 +56,15 @@ facebook = oauth.remote_app(
 )
 
 
-@app.route('/')
-def index():
-    return redirect(url_for('login'))
+# TODO: Check methods only to POST
+@app.route('/facebook/<urer_uuid>')# , methods=['POST'])
+def index(urer_uuid):
+    print('Facebook login request ' + str(urer_uuid))
+    if urer_uuid:
+        facebook.urer_uuid = urer_uuid
+        return redirect(url_for('login'))
+    else:
+        abort(422)
 
 
 @app.route('/login')
@@ -60,7 +74,53 @@ def login():
         next=request.args.get('next') or request.referrer or None,
         _external=True
     )
-    return facebook.authorize(callback=callback)
+    facebook_authorization = facebook.authorize(callback=callback)
+    return facebook_authorization
+
+
+def insert_friends(friends_list):
+
+    for friend in friends_list:
+        sparql.setMethod(GET)
+        select_user_by_fb_id = facebook_select_user_by_fb_id(friend['id'])
+        sparql.setQuery(select_user_by_fb_id)
+        query_result = sparql.query()
+        result_converted = query_result.convert()
+        if query_result.response.code:
+            try:
+                if len(result_converted["results"]["bindings"]):
+                    friend_urrer_id = result_converted["results"]["bindings"][0]
+            except Exception as e:
+                print(e.message)
+
+    pass
+
+
+def insert_facebook_user(user_data, urer_uuid):
+    """
+
+    :param user_data:
+    :param urer_uuid:
+    :return:
+    """
+    rdf_unique_top = '<https://facebook.com/' + str(user_data['id']) + '>'
+
+    query_string = facebook_link_account_query(rdf_unique_top_string=rdf_unique_top, urrer_uuid=urer_uuid,
+                                               fb_user_name=user_data['name'], fb_user_id=user_data['id'],
+                                               fb_user_email=user_data['email'])
+    try:
+        sparql.setMethod(POST)
+        sparql.setQuery(query_string)
+        query_result = sparql.query()
+
+        if query_result.response.code == 200:
+            print('Facebook insert ok ' + str(user_data['name']) + ' urer: ' + urer_uuid)
+        else:
+            print('Facebook insert error')
+
+    except Exception as e:
+        print(e.message)
+    pass
 
 
 @app.route('/login/authorized')
@@ -76,7 +136,12 @@ def facebook_authorized():
 
     session['oauth_token'] = (resp['access_token'], '')
     me = facebook.get('/me?fields=name,email')
+
+    if me.status == 200:
+        insert_facebook_user(user_data=me.data, urer_uuid=facebook.urer_uuid)
     friends = facebook.get('/me/friends')
+
+    insert_friends(friends.data['data'])
 
     friends_list = str()
     for i in friends.data['data']:
@@ -86,10 +151,11 @@ def facebook_authorized():
     if 'email' not in me.data:
         me.data['email'] = 'Unknown'
 
-    return 'Logged in as name=%s ; Your email is: %s ; Your friends are: %s' % \
-        (me.data['name'],
-         me.data['email'],
-         friends_list)
+    print('Logged in as name=%s ; Your email is: %s ; Your friends are: %s' % \
+          (me.data['name'],
+           me.data['email'],
+           friends_list))
+    return redirect('http://urrer.me')
 
 
 @facebook.tokengetter
