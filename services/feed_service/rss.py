@@ -2,12 +2,24 @@ import re
 import time
 import threading
 import traceback
+from time import gmtime, strftime
 
 import feedparser
 from concurrent import futures
 from flask import Flask, request, abort, jsonify
+from SPARQLWrapper import SPARQLWrapper, JSON, POST, GET
 
 from rss_lists import rss_full_list as __rss_full_list
+
+# sparql = SPARQLWrapper("https://dydra.com/dimavascan94/urer/sparql")
+sparql = SPARQLWrapper("https://dydra.com/dimavascan94/test/sparql")
+sparql.setReturnFormat(JSON)
+sparql.setHTTPAuth('Basic')
+sparql.setCredentials('dimavascan94', 'taipwadeurer')
+# sparql.setQuery("""
+#    select * where { { graph ?g {?s ?p ?o} } union {?s ?p ?o} }
+# """)
+# results = sparql.query().convert()
 
 app = Flask(__name__)
 
@@ -47,7 +59,7 @@ def __crawler_thread_():
 
 
 # TODO: Implement specific filtering for each category (computer, art, etc.)
-def filter(keywords):
+def feed_articles(user_id, keywords):
     feeds_copy = __backup_feeds
     if not feeds_copy:  # If the crawler thread is not running right now...
         feeds_copy = __feeds_
@@ -113,6 +125,69 @@ def filter(keywords):
             except:
                 traceback.print_exc()
 
+    if len(frequency_dict):
+        try:
+            sparql.setMethod(GET)
+            sparql.setQuery("""
+                SELECT ?feedLink ?title ?description ?creationDate ?sourceLink ?attachment
+                WHERE {
+                        ?feedLink sioc:has_creator '%d';
+                        dc:title ?title;
+                        dc:description ?description;
+                        dc:date ?creationDate;
+                        dc:source ?sourceLink;
+                        sioc:attachment ?attachment;
+                     }
+            """ % (user_id))
+
+            results = sparql.query().convert()
+            for result in results["results"]["bindings"]:
+                for keyword in list(frequency_dict):  # We need a copy of it
+                    for index, item in enumerate(frequency_dict[keyword]):
+                        if item['link'] == result["feedLink"]["value"]:
+                            if len(frequency_dict[keyword]) == 1:
+                                del frequency_dict[keyword]
+                            else:
+                                del frequency_dict[keyword][index]
+
+                            break
+
+            # pp = __import__("pprint").PrettyPrinter(indent=2, stream=__import__("sys").stderr)
+            # pp.pprint(frequency_dict)
+            # frequency_dict = filter(lambda x: lambda y: x[y] not in seen_articles, frequency_dict)
+            # pp.pprint(frequency_dict)
+            if len(frequency_dict):  # We have at least one new article for the user_id
+                query = ""
+                for i in frequency_dict.values():
+                    for item in i:
+                        query += """
+                        <%s>  dc:title '%s';
+                                        sioc:has_creator '%d';
+                                        dc:description '%s';
+                                        dc:date '%s';
+                                        dc:source '%s';
+                                        sioc:attachment '%s'.
+                        """ % (
+                            item["link"],
+                            item["title"],
+                            user_id,
+                            item["description"],
+                            strftime("%Y-%m-%d %H:%M:%S", gmtime()),  # item["published_time"],
+                            item["from"],
+                            item["image"]
+                        )
+
+                __import__("sys").stderr.write(query)
+                sparql.setMethod(POST)
+                sparql.setQuery("""
+                    INSERT DATA
+                    {
+                        %s
+                    }""" % (query))
+                sparql.query()
+        except:
+            traceback.print_exc()
+
     sorted_dict = dict(sorted(frequency_dict.iteritems(),
                               key=lambda x: lambda y: x[y]['frequency'], reverse=True))
 
@@ -127,7 +202,9 @@ def feeder():
     if 'user_id' not in request.json or 'keywords' not in request.json:
         abort(422)  # The 422 (Unprocessable Entity) status code means the server understands the content type of the request entity (hence a 415(Unsupported Media Type) status code is inappropriate), and the syntax of the request entity is correct (thus a 400 (Bad Request) status code is inappropriate) but was unable to process the contained instructions. For example, this error condition may occur if an XML request body contains well-formed (i.e., syntactically correct), but semantically erroneous, XML instructions.
 
-    return filter(request.json["keywords"])
+    user_id = int(request.json['user_id'])
+
+    return feed_articles(user_id, request.json["keywords"])
 
 
 if __name__ == "__main__":
