@@ -34,10 +34,21 @@ def facebook_link_account_query(rdf_unique_top_string, urrer_uuid,
 def facebook_select_user_by_fb_id(facebook_friend_id):
     query_format = """SELECT ?uniqueId
         WHERE
-        {{     ?facebookAccountIdentifier foaf:accountServiceHomepage 'https//facebook.com';
+        {{     ?facebookAccountIdentifier foaf:accountServiceHomepage 'https://facebook.com';
               foaf:accountName '{}';
               sioc:account_of ?uniqueId;
         }}
         """
     query_string = query_format.format(facebook_friend_id)
+    return query_string
+
+
+def facebook_insert_follow(urrer_id_me, urrer_id_friend):
+
+    query_format = """
+        INSERT DATA {{
+            <https://urer-client.local.revenew.nl/user/{}> sioc:follows <https://urer-client.local.revenew.nl/user/{}>
+        }}
+        """
+    query_string = query_format.format(urrer_id_me, urrer_id_friend, urrer_id_friend, urrer_id_me)
     return query_string

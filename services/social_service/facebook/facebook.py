@@ -2,7 +2,7 @@ from __future__ import print_function
 from flask import Flask, redirect, url_for, session, request, abort
 from flask_oauthlib.client import OAuth, OAuthException
 from SPARQLWrapper import SPARQLWrapper, JSON, POST, GET
-from RDFQueries import facebook_link_account_query, facebook_select_user_by_fb_id
+from RDFQueries import facebook_link_account_query, facebook_select_user_by_fb_id, facebook_insert_follow
 
 FACEBOOK_APP_ID = '1266953439991986'
 FACEBOOK_APP_SECRET = '8cefcc09304059e1139f54f9fb03e20d'
@@ -78,20 +78,61 @@ def login():
     return facebook_authorization
 
 
-def insert_friends(friends_list):
+def insert_follow(urrer_id_me, urrer_id_friend):
+    query_string = facebook_insert_follow(urrer_id_me, urrer_id_friend)
+    try:
+        sparql.setMethod(POST)
+        sparql.setQuery(query_string)
+        query_result = sparql.query()
 
+        if query_result.response.code == 200:
+            print('Follows insert  ok ' + str(urrer_id_me) + ' <->' + urrer_id_friend)
+        else:
+            print('Facebook insert error')
+
+    except Exception as e:
+        print(e.message)
+    pass
+
+    query_string = facebook_insert_follow(urrer_id_friend, urrer_id_me)
+    try:
+        sparql.setMethod(POST)
+        sparql.setQuery(query_string)
+        query_result = sparql.query()
+
+        if query_result.response.code == 200:
+            print('Follows insert  ok ' + str(urrer_id_friend) + ' <->' + urrer_id_me)
+        else:
+            print('Facebook insert error')
+
+    except Exception as e:
+        print(e.message)
+    pass
+
+
+def insert_friends(friends_list, my_urrer_id):
+    print("Search facebook friends on urer")
     for friend in friends_list:
+        print('Friend:')
+        print(friend)
         sparql.setMethod(GET)
         select_user_by_fb_id = facebook_select_user_by_fb_id(friend['id'])
+        print("Query - " + select_user_by_fb_id)
         sparql.setQuery(select_user_by_fb_id)
         query_result = sparql.query()
         result_converted = query_result.convert()
-        if query_result.response.code:
-            try:
-                if len(result_converted["results"]["bindings"]):
-                    friend_urrer_id = result_converted["results"]["bindings"][0]
-            except Exception as e:
-                print(e.message)
+
+        try:
+            print("Search urer id for friends " + str(friend['name'] ))
+            if len(result_converted["results"]["bindings"]):
+                friend_urrer_id = result_converted["results"]["bindings"][0]['uniqueId']['value']
+                print("Found urer id for " + friend['name'] + ' with urer id ' + friend_urrer_id)
+                insert_follow(my_urrer_id, friend_urrer_id)
+            else:
+                print("Search urer id not found ")
+
+        except Exception as e:
+            print(e.message)
 
     pass
 
@@ -141,7 +182,7 @@ def facebook_authorized():
         insert_facebook_user(user_data=me.data, urer_uuid=facebook.urer_uuid)
     friends = facebook.get('/me/friends')
 
-    insert_friends(friends.data['data'])
+    insert_friends(friends.data['data'], my_urrer_id=facebook.urer_uuid)
 
     friends_list = str()
     for i in friends.data['data']:
@@ -151,10 +192,11 @@ def facebook_authorized():
     if 'email' not in me.data:
         me.data['email'] = 'Unknown'
 
-    print('Logged in as name=%s ; Your email is: %s ; Your friends are: %s' % \
+    """print('Logged in as name=%s ; Your email is: %s ; Your friends are: %s' % \
           (me.data['name'],
            me.data['email'],
            friends_list))
+    """
     return redirect('http://urrer.me')
 
 
