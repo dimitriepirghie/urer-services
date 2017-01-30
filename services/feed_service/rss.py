@@ -1,6 +1,7 @@
-import json
+import re
 import time
 import threading
+import traceback
 
 import feedparser
 from concurrent import futures
@@ -14,6 +15,8 @@ __feeds_ = list()
 __backup_feeds = list()
 __min_keyword_appearances = 1
 __CRAWLER_THREAD_TIMEOUT = 60 * 60  # from hour in hour
+
+tag_regexp = re.compile('<.*>')
 
 
 def __process_future_(f):
@@ -53,31 +56,67 @@ def filter(keywords):
 
     for feed in feeds_copy:
         for entry in feed["entries"]:
-            for keyword in keywords:
-                if 'summary' not in entry:
-                    break
-
-                frequency = entry['summary'].count(keyword)
-
-                if frequency >= __min_keyword_appearances:
+            try:
+                for keyword in keywords:
                     d = {
+                        "description": entry['title'],
+                    }
+                    if 'summary' not in entry:
+                        splitted_words = keyword.split(' ')
+                        frequency = 0
+                        for word in splitted_words:
+                            frequency += entry['title'].count(word)
+
+                        # We couldn't find half of the words in title, neither
+                        if frequency < len(splitted_words) / 2:
+                            break
+                    else:
+                        summary = entry['summary']
+                        frequency = summary.count(keyword)
+                        if frequency < __min_keyword_appearances:
+                            break
+
+                        if len(summary) >= 10:
+                            if not tag_regexp.search(summary):
+                                d.update({"description": summary})
+
+                    d.update({
                         # 'frequency': frequency,
                         'title': entry['title'],
-                        'description': 0,
-                        'image': 0,
-                        'from': 0,
                         'link': entry['link'],
-                    }
+                    })
+
+                    d['published_time'] = entry.get('published') or entry.get('updated')  # or None :)
+                    d['from'] = entry.get('source', {}).get('href')
+
+                    try:
+                        d['image'] = entry['media_content'][0]['url']
+                    except:
+                        try:
+                            d['image'] = feed['feed']['image']['href']
+                        except:
+                            try:
+                                if len(entry['links'] > 1):
+                                    for i in entry['links']:
+                                        if 'type' in i and 'image' in i['type']:
+                                            d['image'] = i['href']
+                                            break  # Found one image
+                            except:
+                                d['image'] = None
 
                     if keyword not in frequency_dict:
                         frequency_dict[keyword] = [d]
                     else:
-                        if d['title'] not in [i['title'] for i in frequency_dict[keyword]]:
+                        if d['title'] not in [i['title'] for i in frequency_dict[keyword]]:  # Don't include duplicates
                             frequency_dict[keyword].append(d)
 
-    sorted_dict = dict(sorted(frequency_dict.iteritems(), key=lambda x: lambda y: x[y]['frequency'], reverse=True))
-    # jsonify formats formats json and add Content-Type: plain-text/json
-    return jsonify(sorted_dict) # json.dumps(sorted_dict)
+            except:
+                traceback.print_exc()
+
+    sorted_dict = dict(sorted(frequency_dict.iteritems(),
+                              key=lambda x: lambda y: x[y]['frequency'], reverse=True))
+
+    return jsonify(sorted_dict)  # jsonify formats formats json and add Content-Type: plain-text/json
 
 
 @app.route('/feeder', methods=['POST'])
@@ -92,7 +131,6 @@ def feeder():
 
 
 if __name__ == "__main__":
-
     threading.Thread(target=__feed_).start()
     threading.Thread(target=__crawler_thread_).start()
 
