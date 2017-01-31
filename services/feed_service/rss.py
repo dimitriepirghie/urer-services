@@ -11,8 +11,8 @@ from SPARQLWrapper import SPARQLWrapper, JSON, POST, GET  # , POSTDIRECTLY
 
 from rss_lists import rss_full_list as __rss_full_list
 
-# ENDPOINT_URL = "https://dydra.com/dimavascan94/test/sparql"
-ENDPOINT_URL = "https://dydra.com/dimavascan94/urer/sparql"
+ENDPOINT_URL = "https://dydra.com/dimavascan94/test/sparql"
+# ENDPOINT_URL = "https://dydra.com/dimavascan94/urer/sparql"
 
 sparql = SPARQLWrapper(ENDPOINT_URL)
 sparql.setReturnFormat(JSON)
@@ -128,7 +128,7 @@ def feed_articles(user_id, keywords):
                     })
 
                     d['published_time'] = entry.get('published') or entry.get('updated')  # or None :)
-                    d['from'] = entry.get('source', {}).get('href')
+                    d['from'] = entry.get('source', {}).get('href', ur"UReR")
 
                     try:
                         d['image'] = entry['media_content'][0]['url']
@@ -143,7 +143,7 @@ def feed_articles(user_id, keywords):
                                             d['image'] = i['href']
                                             break  # Found one image
                             except:
-                                d['image'] = None
+                                d['image'] = ur"https://cdn4.iconfinder.com/data/icons/hiba-vol-3/512/description-512.png"
 
                     if keyword not in frequency_dict:
                         frequency_dict[keyword] = [d]
@@ -205,12 +205,12 @@ def feed_articles(user_id, keywords):
                             user_id,
                             unicode(item["description"]).replace('\\', '\\\\').replace('\'', '\\\''),
                             strftime("%Y-%m-%d %H:%M:%S", gmtime()),  # item["published_time"],
-                            unicode(item["from"]).replace('\\', '\\\\').replace('\'', '\\\'') if item["from"] is not None else ur"UReR",
-                            unicode(item["image"]).replace('\\', '\\\\').replace('\'', '\\\'') if item["image"] is not None else ur"https://cdn4.iconfinder.com/data/icons/hiba-vol-3/512/description-512.png",
+                            unicode(item["from"]).replace('\\', '\\\\').replace('\'', '\\\''),
+                            unicode(item["image"]).replace('\\', '\\\\').replace('\'', '\\\''),
                             unicode(key).replace('\\', '\\\\').replace('\'', '\\\''),
                         )
+                        __import__("sys").stderr.write(unicode(item["from"]).replace('\\', '\\\\').replace('\'', '\\\'') if (item["from"]) is not None and item["from"] != "" else ur"UReR")
 
-                # __import__("sys").stderr.write(query)
                 # sparql.setRequestMethod(POSTDIRECTLY)
                 sparql.setMethod(POST)
                 sparql.setQuery("""
