@@ -18,6 +18,9 @@ def facebook_link_account_query(rdf_unique_top_string, urrer_uuid,
         }
     """
 
+    if fb_user_name == u"Morosanu Dan":
+        fb_user_name = u"Moroșanu Dan"
+    
     query_format = """
     INSERT DATA {{
         GRAPH <https://urrer.me/users> { 
