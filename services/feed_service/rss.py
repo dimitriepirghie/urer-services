@@ -192,7 +192,7 @@ def feed_articles(user_id, keywords):
                         query += """
                         <%s> rdf:type sioc:Post;
                                 dcterms:title '%s';
-                                sioc:has_creator '%d';
+                                sioc:has_creator '%s';
                                 dc:description '%s';
                                 dcterms:created '%s';
                                 dc:source '%s';
@@ -202,7 +202,7 @@ def feed_articles(user_id, keywords):
                             # Convert to unicode no matter if it's already unicode, because these can be None too...
                             unicode(item["link"]).replace('\\', '\\\\').replace('\'', '\\\''),
                             unicode(item["title"]).replace('\\', '\\\\').replace('\'', '\\\''),
-                            user_id,
+                            unicode(user_id),
                             unicode(item["description"]).replace('\\', '\\\\').replace('\'', '\\\''),
                             strftime("%Y-%m-%d %H:%M:%S", gmtime()),  # item["published_time"],
                             unicode(item["from"]).replace('\\', '\\\\').replace('\'', '\\\''),
