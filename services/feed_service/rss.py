@@ -7,12 +7,14 @@ from time import gmtime, strftime
 import feedparser
 from concurrent import futures
 from flask import Flask, request, abort, jsonify
-from SPARQLWrapper import SPARQLWrapper, JSON, POST, GET
+from SPARQLWrapper import SPARQLWrapper, JSON, POST, GET  # , POSTDIRECTLY
 
 from rss_lists import rss_full_list as __rss_full_list
 
-# sparql = SPARQLWrapper("https://dydra.com/dimavascan94/test/sparql")
-sparql = SPARQLWrapper("https://dydra.com/dimavascan94/urer/sparql")
+ENDPOINT_URL = "https://dydra.com/dimavascan94/test/sparql"
+# ENDPOINT_URL = "https://dydra.com/dimavascan94/urer/sparql"
+
+sparql = SPARQLWrapper(ENDPOINT_URL)
 sparql.setReturnFormat(JSON)
 sparql.setHTTPAuth('Basic')
 sparql.setCredentials('dimavascan94', 'taipwadeurer')
@@ -58,6 +60,24 @@ def __crawler_thread_():
         __backup_feeds[:] = list()
 
 
+def set_select_query_graph():
+    if "urer" in ENDPOINT_URL:
+        return "FROM <https://urrer.me/users>"
+
+    return ""
+
+
+def set_insert_query_graph(query):
+    if "urer" in ENDPOINT_URL:
+        return """
+            GRAPH <https://urrer.me/users> {
+                %s
+            }
+        """ % (query)
+    else:
+        return "%s" % (query)
+
+
 # TODO: Implement specific filtering for each category (computer, art, etc.)
 def feed_articles(user_id, keywords):
     feeds_copy = __backup_feeds
@@ -77,20 +97,29 @@ def feed_articles(user_id, keywords):
                         splitted_words = keyword.split(' ')
                         frequency = 0
                         for word in splitted_words:
-                            frequency += entry['title'].count(word)
+                            word_list = [word.lower(), word.upper(), word.capitalize()]
+                            frequency += sum(entry['title'].count(i) for i in word_list)
 
                         # We couldn't find half of the words in title, neither
-                        if frequency < len(splitted_words) / 2:
+                        if frequency < len(splitted_words) / 2 + 1:
                             break
+                        # __import__("sys").stderr.write("keyword %s, title %s, frequency %d, len(splitted_words) %d" % (
+                        #     keyword, entry["title"], frequency, len(splitted_words)
+                        # ))
                     else:
                         summary = entry['summary']
-                        frequency = summary.count(keyword)
+                        if len(summary) < 10 or tag_regexp.search(summary):
+                            break
+
+                        keyword_list = [keyword.lower(), keyword.upper(), keyword.capitalize()]
+                        frequency = sum(summary.count(i) for i in keyword_list)
                         if frequency < __min_keyword_appearances:
                             break
 
-                        if len(summary) >= 10:
-                            if not tag_regexp.search(summary):
-                                d.update({"description": summary})
+                        # __import__("sys").stderr.write("keyword %s, summary %s, frequency %d" % (
+                        #     keyword, summary, frequency
+                        # ))
+                        d.update({"description": summary})
 
                     d.update({
                         # 'frequency': frequency,
@@ -130,7 +159,7 @@ def feed_articles(user_id, keywords):
             sparql.setMethod(GET)
             sparql.setQuery("""
                 SELECT ?feedLink ?title ?description ?creationDate ?sourceLink ?attachment
-                FROM <https://urrer.me/users>
+                %s
                 WHERE {
                         ?feedLink sioc:has_creator '%d';
                         dc:title ?title;
@@ -139,7 +168,7 @@ def feed_articles(user_id, keywords):
                         dc:source ?sourceLink;
                         sioc:attachment ?attachment;
                      }
-            """ % (user_id))
+            """ % (set_select_query_graph(), user_id))
 
             results = sparql.query().convert()
             for result in results["results"]["bindings"]:
@@ -169,24 +198,24 @@ def feed_articles(user_id, keywords):
                                         dc:source '%s';
                                         sioc:attachment '%s'.
                         """ % (
-                            item["link"],
-                            item["title"],
+                            # Convert to unicode no matter if it's already unicode, because these can be None too...
+                            unicode(item["link"]).replace('\\', '\\\\').replace('\'', '\\\''),
+                            unicode(item["title"]).replace('\\', '\\\\').replace('\'', '\\\''),
                             user_id,
-                            item["description"],
+                            unicode(item["description"]).replace('\\', '\\\\').replace('\'', '\\\''),
                             strftime("%Y-%m-%d %H:%M:%S", gmtime()),  # item["published_time"],
-                            item["from"],
-                            item["image"]
+                            unicode(item["from"]).replace('\\', '\\\\').replace('\'', '\\\''),
+                            unicode(item["image"]).replace('\\', '\\\\').replace('\'', '\\\''),
                         )
 
-                __import__("sys").stderr.write(query)
+                # __import__("sys").stderr.write(query)
                 sparql.setMethod(POST)
+                # sparql.setRequestMethod(POSTDIRECTLY)
                 sparql.setQuery("""
                     INSERT DATA
                     {
-                        GRAPH <https://urrer.me/users> {
-                            %s
-                        }
-                    }""" % (query))
+                        %s
+                    }""" % (set_insert_query_graph(query)))
                 sparql.query()
         except:
             traceback.print_exc()
