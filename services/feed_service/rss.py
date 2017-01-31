@@ -11,8 +11,8 @@ from SPARQLWrapper import SPARQLWrapper, JSON, POST, GET  # , POSTDIRECTLY
 
 from rss_lists import rss_full_list as __rss_full_list
 
-# ENDPOINT_URL = "https://dydra.com/dimavascan94/test/sparql"
-ENDPOINT_URL = "https://dydra.com/dimavascan94/urer/sparql"
+ENDPOINT_URL = "https://dydra.com/dimavascan94/test/sparql"
+# ENDPOINT_URL = "https://dydra.com/dimavascan94/urer/sparql"
 
 sparql = SPARQLWrapper(ENDPOINT_URL)
 sparql.setReturnFormat(JSON)
@@ -158,15 +158,11 @@ def feed_articles(user_id, keywords):
         try:
             sparql.setMethod(GET)
             sparql.setQuery("""
-                SELECT ?feedLink ?title ?description ?creationDate ?sourceLink ?attachment
+                SELECT ?feedLink
                 %s
                 WHERE {
-                        ?feedLink sioc:has_creator '%d';
-                        dc:title ?title;
-                        dc:description ?description;
-                        dc:date ?creationDate;
-                        dc:source ?sourceLink;
-                        sioc:attachment ?attachment;
+                        ?feedLink rdf:type sioc:Post;
+                                    sioc:has_creator '%d';
                      }
             """ % (set_select_query_graph(), user_id))
 
@@ -188,15 +184,17 @@ def feed_articles(user_id, keywords):
             # pp.pprint(frequency_dict)
             if len(frequency_dict):  # We have at least one new article for the user_id
                 query = ""
-                for i in frequency_dict.values():
-                    for item in i:
+                for key, values in frequency_dict.iteritems():
+                    for item in values:
                         query += """
-                        <%s>  dc:title '%s';
-                                        sioc:has_creator '%d';
-                                        dc:description '%s';
-                                        dc:date '%s';
-                                        dc:source '%s';
-                                        sioc:attachment '%s'.
+                        <%s> rdf:type sioc:Post;
+                                dcterms:title '%s';
+                                sioc:has_creator '%d';
+                                dc:description '%s';
+                                dcterms:created '%s';
+                                dc:source '%s';
+                                sioc:attachment '%s';
+                                sioc:topic '%s'.
                         """ % (
                             # Convert to unicode no matter if it's already unicode, because these can be None too...
                             unicode(item["link"]).replace('\\', '\\\\').replace('\'', '\\\''),
@@ -206,11 +204,12 @@ def feed_articles(user_id, keywords):
                             strftime("%Y-%m-%d %H:%M:%S", gmtime()),  # item["published_time"],
                             unicode(item["from"]).replace('\\', '\\\\').replace('\'', '\\\''),
                             unicode(item["image"]).replace('\\', '\\\\').replace('\'', '\\\''),
+                            unicode(key).replace('\\', '\\\\').replace('\'', '\\\''),
                         )
 
                 # __import__("sys").stderr.write(query)
-                sparql.setMethod(POST)
                 # sparql.setRequestMethod(POSTDIRECTLY)
+                sparql.setMethod(POST)
                 sparql.setQuery("""
                     INSERT DATA
                     {
