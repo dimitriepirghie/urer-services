@@ -11,8 +11,8 @@ from SPARQLWrapper import SPARQLWrapper, JSON, POST, GET  # , POSTDIRECTLY
 
 from rss_lists import rss_full_list as __rss_full_list
 
-ENDPOINT_URL = "https://dydra.com/dimavascan94/test/sparql"
-# ENDPOINT_URL = "https://dydra.com/dimavascan94/urer/sparql"
+# ENDPOINT_URL = "https://dydra.com/dimavascan94/test/sparql"
+ENDPOINT_URL = "https://dydra.com/dimavascan94/urer/sparql"
 
 sparql = SPARQLWrapper(ENDPOINT_URL)
 sparql.setReturnFormat(JSON)
@@ -158,15 +158,18 @@ def feed_articles(user_id, keywords):
         try:
             sparql.setMethod(GET)
             sparql.setQuery("""
-                SELECT ?feedLink
+                SELECT ?feedLink ?dismissed
                 %s
                 WHERE {
                         ?feedLink rdf:type sioc:Post;
-                                    sioc:has_creator '%d';
+                                    sioc:has_creator '%s';
+                        OPTIONAL { ?y sioc:has_modifier '%s'; . FILTER (?feedLink = ?y) . }
+                        FILTER ( !BOUND(?y) )
                      }
-            """ % (set_select_query_graph(), user_id))
+            """ % (set_select_query_graph(), user_id, user_id))
 
             results = sparql.query().convert()
+
             for result in results["results"]["bindings"]:
                 for keyword in list(frequency_dict):  # We need a copy of it
                     for index, item in enumerate(frequency_dict[keyword]):
