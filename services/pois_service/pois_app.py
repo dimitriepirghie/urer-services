@@ -18,7 +18,7 @@ flask_app_context = app.app_context()
 flask_app_context.push()
 
 api_key = os.environ.get("POIS_API_KEY", None)
-GOOGLE_PLACES_API_KEY = os.environ.get("GOOGLE_PLACES_API_KEY", 'AIzaSyBPnVqBNdEaviBQcsNEr9PK5JcpSCij2_I')
+GOOGLE_PLACES_API_KEY = os.environ.get("GOOGLE_PLACES_API_KEY", 'AIzaSyDOLLvtyMDjnOuc1OrZ51wrAhUN2TLrI2A')
 
 
 def validate_new_event_request(function):
@@ -59,10 +59,10 @@ def call_google_api(request_json):
                 del request_json[request_parameter]
 
         places_result = google_api.search(**request_json)
-        logger.info("Google API Result " + str(places_result))
+        logger.info("Google API Result " + '- too much logs')
         return places_result
     except Exception as e:
-        logger.error('call_google_api' + str(e.message))
+        logger.error('call_google_api error' + str(e.message))
         return None
 
 
@@ -146,7 +146,7 @@ def nearby():
         "timestamp": 12312312
     }
     """
-
+    logger.info("Nearby called")
     try:
         nearby_post_data = json.loads(request.data)
         nearby_thread = threading.Thread(target=do_near_by, args=(nearby_post_data, ))
@@ -170,5 +170,3 @@ if __name__ == '__main__':
                }
     do_task(request)
     """
-
-

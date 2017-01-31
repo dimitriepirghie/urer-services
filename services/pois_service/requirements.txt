@@ -3,3 +3,4 @@ requests
 validators
 redis
 haversine
+SPARQLWrapper

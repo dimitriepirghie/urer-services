@@ -12,6 +12,12 @@ allowed_search_parameters = ['keyword', 'language', 'minprice',
                              'maxprice', 'name', 'opennow', 'type'] + mandatory_search_parameters
 
 
+favourite_types = ['airport', 'cafe', 'church', 'restaurant', 'pharmacy',
+                   'museum', 'night_club', 'library', 'shopping_mall',
+                   'travel_agency', 'university', 'hair_care', 'gym', 'park', 'spa', 'florist', 'car_rental',
+                   'campground', 'bowling_alley', 'book_store', 'bar']
+
+
 class GooglePlacesAPI(object):
     """
 
@@ -43,6 +49,11 @@ class GooglePlacesAPI(object):
 
         for sanitize_func in sanitize_parameters_functions:
             parameters = map(sanitize_func, parameters)
+
+        if 'radius' not in kwargs:
+            print('Radius not in request set default to 500')
+            parameters.append('radius')
+            kwargs['radius'] = 500
 
         mandatory_missing = set(mandatory_search_parameters) - set(parameters)
         if mandatory_missing:
@@ -83,24 +94,47 @@ class GooglePlacesAPI(object):
 
                 place_details = self.place_details(**dict_)
                 place_client_dict = {}
-                place_details_json = json.loads(place_details)['result']
-                place_client_dict['title'] = place_details_json.pop('name') if 'name' in place_details_json else 'Undefined'
-                place_client_dict['image'] = place_details_json.pop('icon') if 'icon' in place_details_json else 'Undefined'
-                place_client_dict['from'] = 'Google Maps'
-                place_client_dict['link'] = place_details_json.pop('website') if 'website' in place_details_json else 'Undefined'
-                place_client_dict['map'] = place_details_json.pop('url') if 'url' in place_details_json else 'Undefined'
-                place_client_dict['time'] = datetime.utcnow().strftime('%b %d %Y %H:%M:%S')
-                place_client_dict['description'] = 'ToDO Search for description'
-                results_to_client.append(place_client_dict)
+                place_details_json = json.loads(place_details)
 
-            if 200 == request_result.status_code:
-                print(str(results_to_client))
+                if 'OK' in place_details_json['status']:
+                    place_details_json = place_details_json['result']
+
+                    places_types = set(place_details_json['types'])
+                    favourite_types_set = set(favourite_types)
+                    if not places_types.intersection(favourite_types_set):
+                        continue
+
+                    place_client_dict['title'] = place_details_json.pop('name') if 'name' in place_details_json else 'Undefined'
+                    place_client_dict['image'] = place_details_json.pop('icon') if 'icon' in place_details_json else 'Undefined'
+                    place_client_dict['from'] = 'Google Maps'
+                    place_client_dict['link'] = place_details_json.pop('website') if 'website' in place_details_json else 'Undefined'
+                    place_client_dict['map'] = place_details_json.pop('url') if 'url' in place_details_json else 'Undefined'
+                    place_client_dict['time'] = datetime.utcnow().strftime('%b %d %Y %H:%M:%S')
+                    place_client_dict['description'] = 'ToDO Search for description'
+                    results_to_client.append(place_client_dict)
+                else:
+                    place_client_dict['title'] = place.pop(
+                        'name') if 'name' in place else 'Undefined'
+                    place_client_dict['image'] = place.pop(
+                        'icon') if 'icon' in place else 'Undefined'
+                    place_client_dict['from'] = 'Google Maps'
+                    place_client_dict['link'] = '#'
+                    place_client_dict['map'] = '#'
+                    place_client_dict['time'] = datetime.utcnow().strftime('%b %d %Y %H:%M:%S')
+                    place_client_dict['description'] = 'ToDO Search for description'
+                    results_to_client.append(place_client_dict)
+
+            print("Found " + str(len(results_to_client)) + " results")
+            if 200 == request_result.status_code and len(results_to_client) > 0:
+                # print(str(results_to_client))
                 return json.dumps(results_to_client)
             else:
                 print("Google returned code different from 200")
                 return None
         except Exception as e:
-            print e.message
+            print("Exception")
+            print(e)
+            print("[ERROR] - " + e.message + ' of type ' + str(type(e)))
             return None
 
     def place_details(self, *args, **kwargs):

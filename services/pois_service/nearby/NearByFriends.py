@@ -9,6 +9,8 @@ from haversine import haversine
 import requests
 import urlparse
 import time
+from RDFQueries import update_user_location
+from SPARQLWrapper import SPARQLWrapper, JSON, POST, GET
 
 # user location timeout in seconds
 try:
@@ -24,6 +26,30 @@ except ValueError:
 
 
 class NearByFriends(object):
+    @staticmethod
+    def update_urer_rdf_user_location(urer_id, location_string):
+        lat, lon = map(unicode, location_string.split(","))
+
+        sparql = SPARQLWrapper("https://dydra.com/dimavascan94/urer/sparql")
+        # sparql = SPARQLWrapper("https://dydra.com/dimavascan94/test/sparql")
+        sparql.setReturnFormat(JSON)
+        sparql.setHTTPAuth('Basic')
+        sparql.setCredentials('dimavascan94', 'taipwadeurer')
+
+        try:
+            query_string = update_user_location(urer_uid=urer_id, lat_string=lat, lon_string=lon)
+            sparql.setMethod(POST)
+            sparql.setQuery(query_string)
+            query_result = sparql.query()
+
+            if query_result.response.code == 200:
+                print('[INFO] - Update RDF User Location OK !')
+            else:
+                print('[ERROR] - Update RDF User Location failed !')
+        except Exception as e:
+            print("[ERROR] - Exception RDF Update user location")
+            print(e.message)
+
     @staticmethod
     def validate_request_dictionary(request_dict):
         mandatory_parameters = ['user_id', 'location', 'response_at']
@@ -65,6 +91,8 @@ class NearByFriends(object):
         user_id = user_data['user_id']
         all_keys = redis_h.keys()
 
+        print("User new location for user " + str(user_id))
+
         user_id_keys = filter(lambda user_key: user_id == user_key.split(',')[0], all_keys)
         another_keys = filter(lambda user_key: user_id != user_key.split(',')[0], all_keys)
 
@@ -79,6 +107,7 @@ class NearByFriends(object):
                                                                                 distance=3,
                                                                                 under=False)
                 if location_change_above_5_km and 'notify_sent_to' in old_user_data:
+                    print("Location change above 5 km so remove previous friend notifications")
                     del old_user_data['notify_sent_to']
                 # Delete old key time stamp
                 redis_h.delete(uuid_key)
@@ -89,14 +118,17 @@ class NearByFriends(object):
             user_data['notify_sent_to'] = old_user_data['notify_sent_to']
 
         redis_h.set(str(user_id), json.dumps(user_data))
+        NearByFriends.update_urer_rdf_user_location(user_id, user_data['location'])
 
         # Remove expired keys
         if another_keys:
+            print("Another locations clean")
             for uuid_key in another_keys:
                 user_data = json.loads(redis_h.get(uuid_key))
                 last_time_stamp = int(user_data['last_timestamp'])
 
                 if epoch_time - last_time_stamp > user_location_timeout:
+                    print("Remove location for user, expired")
                     redis_h.delete(uuid_key)
 
     def __init__(self, request_dictionary):
@@ -182,10 +214,13 @@ class NearByFriends(object):
 
             post_reply = requests.post(response_at, data=json.dumps(response_data),
                                        headers={'Content-type': 'application/json'})
+
+            print("Push data " + str(response_data))
+
             if 200 == post_reply.status_code:
                 print('Push location for user 1 ok')
             else:
-                print('Push location for user 1 not ok')
+                print('Push location for user 1 not ok, status code = ' + str(post_reply.status_code))
 
         if notify_user_2:
             friend_data = {'user_id': user_id_1, 'location': user_1_data['location'],
@@ -196,10 +231,12 @@ class NearByFriends(object):
 
             post_reply = requests.post(response_at, data=json.dumps(response_data),
                                        headers={'Content-type': 'application/json'})
+
+            print("Push data " + str(response_data))
             if 200 == post_reply.status_code:
                 print('Push location for user 2 ok')
             else:
-                print('Push location for user 2 not ok')
+                print('Push location for user 2 not ok, status code = ' + str(post_reply.status_code))
 
     def find_nearby(self):
         user_keys = self.redis_handler.keys()
