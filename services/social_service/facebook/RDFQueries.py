@@ -1,4 +1,6 @@
-
+import sys
+reload(sys)
+sys.setdefaultencoding('utf8')
 
 def facebook_link_account_query(rdf_unique_top_string, urrer_uuid,
                                 fb_user_name, fb_user_id,
