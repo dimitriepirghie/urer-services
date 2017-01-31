@@ -161,7 +161,8 @@ def insert_facebook_user(user_data, urer_uuid):
 
     query_string = facebook_link_account_query(rdf_unique_top_string=rdf_unique_top, urrer_uuid=urer_uuid,
                                                fb_user_name=user_data['name'], fb_user_id=user_data['id'],
-                                               fb_user_email=user_data['email'])
+                                               fb_user_email=user_data['email'],
+                                               fb_user_profile_picture=user_data['picture']['data']['url'])
     try:
         sparql.setMethod(POST)
         sparql.setQuery(query_string)
