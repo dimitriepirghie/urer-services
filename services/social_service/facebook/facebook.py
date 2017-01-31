@@ -4,7 +4,7 @@ from flask_oauthlib.client import OAuth, OAuthException
 from SPARQLWrapper import SPARQLWrapper, JSON, POST, GET
 from RDFQueries import facebook_link_account_query, facebook_select_user_by_fb_id, facebook_insert_follow
 
-import harvest_facebook_v2 as harvest_fb
+import harvest_facebook as harvest_fb
 
 FACEBOOK_APP_ID = '1266953439991986'
 FACEBOOK_APP_SECRET = '8cefcc09304059e1139f54f9fb03e20d'
