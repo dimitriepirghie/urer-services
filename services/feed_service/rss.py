@@ -192,7 +192,7 @@ def feed_articles(user_id, keywords):
                         query += """
                         <%s> rdf:type sioc:Post;
                                 dcterms:title '%s';
-                                sioc:has_creator '%s';
+                                sioc:has_creator '%d';
                                 dc:description '%s';
                                 dcterms:created '%s';
                                 dc:source '%s';
@@ -202,11 +202,11 @@ def feed_articles(user_id, keywords):
                             # Convert to unicode no matter if it's already unicode, because these can be None too...
                             unicode(item["link"]).replace('\\', '\\\\').replace('\'', '\\\''),
                             unicode(item["title"]).replace('\\', '\\\\').replace('\'', '\\\''),
-                            unicode(user_id),
+                            user_id,
                             unicode(item["description"]).replace('\\', '\\\\').replace('\'', '\\\''),
                             strftime("%Y-%m-%d %H:%M:%S", gmtime()),  # item["published_time"],
-                            unicode(item["from"]).replace('\\', '\\\\').replace('\'', '\\\''),
-                            unicode(item["image"]).replace('\\', '\\\\').replace('\'', '\\\''),
+                            unicode(item["from"]).replace('\\', '\\\\').replace('\'', '\\\'') if item["from"] is not None else ur"UReR",
+                            unicode(item["image"]).replace('\\', '\\\\').replace('\'', '\\\'') if item["image"] is not None else ur"https://cdn4.iconfinder.com/data/icons/hiba-vol-3/512/description-512.png",
                             unicode(key).replace('\\', '\\\\').replace('\'', '\\\''),
                         )
 
@@ -236,7 +236,9 @@ def feeder():
     if 'user_id' not in request.json or 'keywords' not in request.json:
         abort(422)  # The 422 (Unprocessable Entity) status code means the server understands the content type of the request entity (hence a 415(Unsupported Media Type) status code is inappropriate), and the syntax of the request entity is correct (thus a 400 (Bad Request) status code is inappropriate) but was unable to process the contained instructions. For example, this error condition may occur if an XML request body contains well-formed (i.e., syntactically correct), but semantically erroneous, XML instructions.
 
-    return feed_articles(request.json['user_id'], request.json["keywords"])
+    user_id = int(request.json['user_id'])
+
+    return feed_articles(user_id, request.json["keywords"])
 
 
 if __name__ == "__main__":
