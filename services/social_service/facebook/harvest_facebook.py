@@ -40,9 +40,9 @@ def harvest_facebook(keywords):
 
     for keyword in keywords:
         current_page = graph_url + keyword
+        post_url = create_post_url(current_page)
 
-        try:
-            post_url = create_post_url(current_page)
+        try: 
             json_postdata = render_to_json(post_url)
         except Exception as e:
             print("[ERROR] -  " + str(e.message))
@@ -60,7 +60,12 @@ def harvest_facebook(keywords):
 
             if len(normalized_posts):
                 image_url = create_image_url(current_page)
-                image_url_result = render_normal(image_url)
+                image_url = create_image_url(current_page)
+                try:
+                    image_url_result = render_normal(image_url)
+                except:
+                    image_url_result = "http://esce.fr/good-morning/images/alumnis/profil_defaut.jpg"
+
                 posts[keyword] = {
                     "messages": normalized_posts[:10],
                     "image_url": image_url_result
