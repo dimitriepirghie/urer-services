@@ -25,9 +25,9 @@ def facebook_link_account_query(rdf_unique_top_string, urrer_uuid,
         foaf:accountName '{}';
     }}
     """
-    query_string = query_format.format(str(rdf_unique_top_string), str(urrer_uuid),
-                                       str(fb_user_email), str(service_home_page),
-                                       str(fb_user_name.encode('ascii', 'ignore')), str(fb_user_id))
+    query_string = query_format.format(unicode(rdf_unique_top_string), unicode(urrer_uuid),
+                                       unicode(fb_user_email), unicode(service_home_page),
+                                       unicode(fb_user_name), unicode(fb_user_id))
     return query_string
 
 
@@ -50,7 +50,7 @@ def facebook_insert_follow(urrer_id_me, urrer_id_friend):
             <https://urer-client.local.revenew.nl/user/{}> sioc:follows <https://urer-client.local.revenew.nl/user/{}>
         }}
         """
-    query_string = query_format.format(str(urrer_id_me.encode('ascii', 'ignore')),
-                                       str(urrer_id_friend.encode('ascii', 'ignore'))
+    query_string = query_format.format(unicode(urrer_id_me),
+                                       unicode(urrer_id_friend)
                                        )
     return query_string
