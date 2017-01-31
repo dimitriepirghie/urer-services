@@ -15,8 +15,8 @@ app.debug = True
 app.secret_key = 'development'
 oauth = OAuth(app)
 
-# sparql = SPARQLWrapper("https://dydra.com/dimavascan94/urer/sparql")
-sparql = SPARQLWrapper("https://dydra.com/dimavascan94/test/sparql")
+sparql = SPARQLWrapper("https://dydra.com/dimavascan94/urer/sparql")
+# sparql = SPARQLWrapper("https://dydra.com/dimavascan94/test/sparql")
 sparql.setReturnFormat(JSON)
 sparql.setHTTPAuth('Basic')
 sparql.setCredentials('dimavascan94', 'taipwadeurer')
