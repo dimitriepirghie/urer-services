@@ -1,8 +1,10 @@
 from __future__ import print_function
-from flask import Flask, redirect, url_for, session, request, abort
+from flask import Flask, redirect, url_for, session, request, abort, jsonify
 from flask_oauthlib.client import OAuth, OAuthException
 from SPARQLWrapper import SPARQLWrapper, JSON, POST, GET
 from RDFQueries import facebook_link_account_query, facebook_select_user_by_fb_id, facebook_insert_follow
+
+import harvest_facebook_v2 as harvest_fb
 
 FACEBOOK_APP_ID = '1266953439991986'
 FACEBOOK_APP_SECRET = '8cefcc09304059e1139f54f9fb03e20d'
@@ -76,6 +78,17 @@ def login():
     )
     facebook_authorization = facebook.authorize(callback=callback)
     return facebook_authorization
+
+
+@app.route('/facebook/interests', methods=["POST"])
+def interests():
+    if not request.json:
+        abort(400)
+
+    if 'interests' not in request.json:
+        abort(422)  # The 422 (Unprocessable Entity) status code means the server understands the content type of the request entity (hence a 415(Unsupported Media Type) status code is inappropriate), and the syntax of the request entity is correct (thus a 400 (Bad Request) status code is inappropriate) but was unable to process the contained instructions. For example, this error condition may occur if an XML request body contains well-formed (i.e., syntactically correct), but semantically erroneous, XML instructions.
+
+    return jsonify(harvest_fb.harvest_facebook(request.json["interests"]))
 
 
 def insert_follow(urrer_id_me, urrer_id_friend):
