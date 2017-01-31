@@ -74,24 +74,30 @@ class GooglePlacesAPI(object):
 
             results_to_client = []
 
+            if 'OK' not in results_json['status']:
+                print('[ERROR] - ' + str(results_json['status']))
+                return None
+
             for place in results_json['results']:
-                #print('Get more data for place id ' + unicode(place['place_id']) + ' with name ' + unicode(place['name']))
                 dict_ = {'place_id': place['place_id'], 'output': 'json'}
 
                 place_details = self.place_details(**dict_)
+                place_client_dict = {}
                 place_details_json = json.loads(place_details)['result']
-                place_details_json['title'] = place_details_json.pop('name') if 'name' in place_details_json else 'Undefined'
-                place_details_json['image'] = place_details_json.pop('icon') if 'icon' in place_details_json else 'Undefined'
-                place_details_json['from'] = 'Google Maps'
-                place_details_json['link'] = place_details_json.pop('website') if 'website' in place_details_json else 'Undefined'
-                place_details_json['map'] = place_details_json.pop('url') if 'url' in place_details_json else 'Undefined'
-                place_details_json['time'] = datetime.utcnow().strftime('%b %d %Y %H:%M:%S')
-                place_details_json['description'] = 'ToDO Search for description'
-                results_to_client.append(place_details_json)
+                place_client_dict['title'] = place_details_json.pop('name') if 'name' in place_details_json else 'Undefined'
+                place_client_dict['image'] = place_details_json.pop('icon') if 'icon' in place_details_json else 'Undefined'
+                place_client_dict['from'] = 'Google Maps'
+                place_client_dict['link'] = place_details_json.pop('website') if 'website' in place_details_json else 'Undefined'
+                place_client_dict['map'] = place_details_json.pop('url') if 'url' in place_details_json else 'Undefined'
+                place_client_dict['time'] = datetime.utcnow().strftime('%b %d %Y %H:%M:%S')
+                place_client_dict['description'] = 'ToDO Search for description'
+                results_to_client.append(place_client_dict)
 
             if 200 == request_result.status_code:
+                print(str(results_to_client))
                 return json.dumps(results_to_client)
             else:
+                print("Google returned code different from 200")
                 return None
         except Exception as e:
             print e.message

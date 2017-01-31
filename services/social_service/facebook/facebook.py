@@ -123,7 +123,7 @@ def insert_friends(friends_list, my_urrer_id):
         result_converted = query_result.convert()
 
         try:
-            print("Search urer id for friends " + str(friend['name'] ))
+            print("Search urer id for friends " + str(friend['name']))
             if len(result_converted["results"]["bindings"]):
                 friend_urrer_id = result_converted["results"]["bindings"][0]['uniqueId']['value']
                 print("Found urer id for " + friend['name'] + ' with urer id ' + friend_urrer_id)
@@ -155,7 +155,7 @@ def insert_facebook_user(user_data, urer_uuid):
         query_result = sparql.query()
 
         if query_result.response.code == 200:
-            print('Facebook insert ok ' + str(user_data['name']) + ' urer: ' + urer_uuid)
+            print('Facebook insert ok ' + str(user_data['name'].encode("ascii", "ignore")) + ' urer: ' + urer_uuid)
         else:
             print('Facebook insert error')
 

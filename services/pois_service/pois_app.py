@@ -18,7 +18,7 @@ flask_app_context = app.app_context()
 flask_app_context.push()
 
 api_key = os.environ.get("POIS_API_KEY", None)
-GOOGLE_PLACES_API_KEY = os.environ.get("GOOGLE_PLACES_API_KEY", 'AIzaSyAb1qLl7Q-25BhSAnZWgMJ7YhLz6yZGjWk')
+GOOGLE_PLACES_API_KEY = os.environ.get("GOOGLE_PLACES_API_KEY", 'AIzaSyBPnVqBNdEaviBQcsNEr9PK5JcpSCij2_I')
 
 
 def validate_new_event_request(function):
@@ -50,6 +50,7 @@ def nice_json(arg, status_code):
 
 
 def call_google_api(request_json):
+    logger.info('call google api with ' + str(request_json))
     try:
         google_api = GooglePlacesAPI(GOOGLE_PLACES_API_KEY)
 
@@ -58,6 +59,7 @@ def call_google_api(request_json):
                 del request_json[request_parameter]
 
         places_result = google_api.search(**request_json)
+        logger.info("Google API Result " + str(places_result))
         return places_result
     except Exception as e:
         logger.error('call_google_api' + str(e.message))
@@ -79,8 +81,11 @@ def do_task(request_json):
 
         response_from_google = call_google_api(request_json=request_json)
 
-        if 'ZERO_RESULTS' in response_from_google:
+        if response_from_google and 'ZERO_RESULTS' in response_from_google:
             logger.info('Do not response, not results from google, request ' + str(request_id))
+            return
+        elif not response_from_google:
+            logger.info('Response from Google None, abort')
             return
 
         try:
@@ -100,7 +105,9 @@ def do_task(request_json):
 
         if 200 == post_reply.status_code:
             logger.info('Push request at ' + response_at + ' with id ' + str(request_id) + ' succeeded')
-
+        else:
+            logger.error('Push failed at ' + response_at + ' code ' + str(post_reply.status_code))
+ 
     except requests.exceptions.ConnectionError as e:
         logger.error('Push request at ' + response_at + ' with id ' + str(request_id) + ' failed')
         pass

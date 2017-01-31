@@ -50,5 +50,7 @@ def facebook_insert_follow(urrer_id_me, urrer_id_friend):
             <https://urer-client.local.revenew.nl/user/{}> sioc:follows <https://urer-client.local.revenew.nl/user/{}>
         }}
         """
-    query_string = query_format.format(urrer_id_me, urrer_id_friend, urrer_id_friend, urrer_id_me)
+    query_string = query_format.format(str(urrer_id_me.encode('ascii', 'ignore')),
+                                       str(urrer_id_friend.encode('ascii', 'ignore'))
+                                       )
     return query_string
