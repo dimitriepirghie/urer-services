@@ -2,9 +2,10 @@ import sys
 reload(sys)
 sys.setdefaultencoding('utf8')
 
+
 def facebook_link_account_query(rdf_unique_top_string, urrer_uuid,
                                 fb_user_name, fb_user_id,
-                                fb_user_email, service_home_page='https://facebook.com'):
+                                fb_user_email, fb_user_profile_picture, service_home_page='https://facebook.com'):
     """
         INSERT  DATA
         {
@@ -20,16 +21,19 @@ def facebook_link_account_query(rdf_unique_top_string, urrer_uuid,
     query_format = """
     INSERT DATA {{
         {}
+        rdf:type sioc:UserAccount;
         sioc:account_of '{}';
         sioc:email '{}';
         foaf:accountServiceHomepage '{}';
         foaf:name '{}';
         foaf:accountName '{}';
+        sioc:avatar '{}';
     }}
     """
     query_string = query_format.format(unicode(rdf_unique_top_string), unicode(urrer_uuid),
                                        unicode(fb_user_email), unicode(service_home_page),
-                                       unicode(fb_user_name), unicode(fb_user_id))
+                                       unicode(fb_user_name), unicode(fb_user_id),
+                                       unicode(fb_user_profile_picture))
     return query_string
 
 
