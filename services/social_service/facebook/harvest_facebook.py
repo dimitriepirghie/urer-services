@@ -62,7 +62,7 @@ def harvest_facebook(keywords):
                 image_url = create_image_url(current_page)
                 image_url_result = render_normal(image_url)
                 posts[keyword] = {
-                    "messages": normalized_posts,
+                    "messages": normalized_posts[:10],
                     "image_url": image_url_result
                 }
 
