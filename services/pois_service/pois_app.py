@@ -107,7 +107,7 @@ def do_task(request_json):
             logger.info('Push request at ' + response_at + ' with id ' + str(request_id) + ' succeeded')
         else:
             logger.error('Push failed at ' + response_at + ' code ' + str(post_reply.status_code))
- 
+
     except requests.exceptions.ConnectionError as e:
         logger.error('Push request at ' + response_at + ' with id ' + str(request_id) + ' failed')
         pass

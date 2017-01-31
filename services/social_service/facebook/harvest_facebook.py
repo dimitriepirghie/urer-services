@@ -41,8 +41,12 @@ def harvest_facebook(keywords):
     for keyword in keywords:
         current_page = graph_url + keyword
 
-        post_url = create_post_url(current_page)
-        json_postdata = render_to_json(post_url)
+        try:
+            post_url = create_post_url(current_page)
+            json_postdata = render_to_json(post_url)
+        except Exception as e:
+            print("[ERROR] -  " + str(e.message))
+            continue
 
         if "data" in json_postdata:
             normalized_posts = []
