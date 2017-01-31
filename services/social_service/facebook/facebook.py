@@ -189,21 +189,20 @@ def facebook_authorized():
         return 'Access denied: %s' % resp.message
 
     session['oauth_token'] = (resp['access_token'], '')
-    me = facebook.get('/me?fields=name,email')
+    me = facebook.get('/me?fields=name,email,picture')
+    if 'email' not in me.data:
+        me.data['email'] = 'Unknown'
 
     if me.status == 200:
         insert_facebook_user(user_data=me.data, urer_uuid=facebook.urer_uuid)
-    friends = facebook.get('/me/friends')
 
+    friends = facebook.get('/me/friends')
     insert_friends(friends.data['data'], my_urrer_id=facebook.urer_uuid)
 
-    friends_list = str()
-    for i in friends.data['data']:
-        friends_list += i['name'] + ', '
-    friends_list = friends_list[:-2]
-
-    if 'email' not in me.data:
-        me.data['email'] = 'Unknown'
+    # friends_list = str()
+    # for i in friends.data['data']:
+    #     friends_list += i['name'] + ', '
+    # friends_list = friends_list[:-2]
 
     """print('Logged in as name=%s ; Your email is: %s ; Your friends are: %s' % \
           (me.data['name'],
