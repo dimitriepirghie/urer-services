@@ -67,6 +67,7 @@ def harvest_facebook(keywords):
                     image_url_result = "http://esce.fr/good-morning/images/alumnis/profil_defaut.jpg"
 
                 posts[keyword] = {
+                    "name": keyword,
                     "messages": normalized_posts[:10],
                     "image_url": image_url_result
                 }
