@@ -181,7 +181,7 @@ def feed_articles(user_id):
                         ?feedLink rdf:type sioc:Post;
                                     sioc:has_creator '%s';
                         OPTIONAL { ?y sioc:has_modifier '%s'; . FILTER (?feedLink = ?y) . }
-                        FILTER ( !BOUND(?y) )
+                        FILTER ( BOUND(?y) )
                      }
             """ % (set_select_query_graph(), user_id, user_id))
 
