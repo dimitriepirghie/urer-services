@@ -123,7 +123,7 @@ def feed_articles(user_id):
                 FILTER ( !BOUND(?y) )
              }
 
-    """ % (set_select_query_graph(), user_id, user_id))  # , user_id
+    """ % (set_select_query_graph(), user_id, user_id, user_id))  # 
 
     results = sparql.query().convert()
 
