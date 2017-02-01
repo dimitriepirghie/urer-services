@@ -3,10 +3,11 @@ import time
 import threading
 import traceback
 from time import gmtime, strftime
+from collections import OrderedDict
 
 import feedparser
 from concurrent import futures
-from flask import Flask, request, abort, jsonify
+from flask import Flask, abort, jsonify  # request
 from SPARQLWrapper import SPARQLWrapper, JSON, POST, GET  # , POSTDIRECTLY
 
 from rss_lists import rss_full_list as __rss_full_list
@@ -104,7 +105,8 @@ def feed_articles(user_id):
 
     sparql.setMethod(GET)
     sparql.setQuery("""
-        SELECT ?feedLink ?title ?description ?creationDate ?sourceLink ?attachment ?interest ?dismissed
+        PREFIX wi: <http://xmlns.notu.be/wi#>
+        SELECT ?feedLink ?title ?description ?creationDate ?sourceLink ?attachment ?interest ?weight
         %s
         WHERE {
                 ?feedLink rdf:type sioc:Post;
@@ -114,12 +116,14 @@ def feed_articles(user_id):
                             dcterms:created ?creationDate;
                             dc:source ?sourceLink;
                             sioc:attachment ?attachment;
-                            sioc:topic ?interest;
+                            sioc:topic ?interest.
+                    '%s' wi:preference ?uniquePreferenceURL.
+                    ?uniquePreferenceURL wi:weight ?weight.
                 OPTIONAL { ?y sioc:has_modifier '%s'; . FILTER (?feedLink = ?y) . }
                 FILTER ( !BOUND(?y) )
              }
 
-    """ % (set_select_query_graph(), user_id, user_id))
+    """ % (set_select_query_graph(), user_id, user_id, user_id))
 
     results = sparql.query().convert()
 
@@ -129,35 +133,34 @@ def feed_articles(user_id):
             "link": result["feedLink"]["value"],
             "title": result["title"]["value"],
             "description": result["description"]["value"],
-            # weight?
             "creation_time": result["creationDate"]["value"],
             "from": result["sourceLink"]["value"],
             "image": result["attachment"]["value"],
         }
         if keyword not in frequency_dict:
-            frequency_dict[keyword] = [d]
+            frequency_dict[keyword] = {
+                "weight": result["weight"]["value"],
+                "data": [d]
+            }
         else:
-            frequency_dict[keyword].append(d)
+            frequency_dict[keyword]["data"].append(d)
 
     for feed in feeds_copy:
         for entry in feed["entries"]:
-            already_exists = False
-            for keyword in list(frequency_dict):  # We need a copy of it
-                if already_exists:
-                    break
+            # already_exists = False
+            # for keyword in list(frequency_dict):  # We need a copy of it
+            #     for index, item in enumerate(frequency_dict[keyword]):
+            #         if item['link'] == entry["link"]:
+            #             if len(frequency_dict[keyword]) == 1:
+            #                 del frequency_dict[keyword]
+            #             else:
+            #                 del frequency_dict[keyword][index]
 
-                for index, item in enumerate(frequency_dict[keyword]):
-                    if item['link'] == entry["link"]:
-                        if len(frequency_dict[keyword]) == 1:
-                            del frequency_dict[keyword]
-                        else:
-                            del frequency_dict[keyword][index]
+            #             already_exists = True
+            #             break
 
-                        already_exists = True
-                        break
-
-            if already_exists:
-                continue
+            # if already_exists:
+            #     continue
 
             try:
                 for idx, keyword in enumerate(keywords):
@@ -196,7 +199,7 @@ def feed_articles(user_id):
                         # 'frequency': frequency,
                         'title': entry['title'],
                         'link': entry['link'],
-                        'weight': weights[idx],
+                        # 'weight': weights[idx],
                         'creation_time': strftime("%Y-%m-%d %H:%M:%S", gmtime()),
                     })
 
@@ -219,10 +222,13 @@ def feed_articles(user_id):
                                 d['image'] = ur"https://cdn4.iconfinder.com/data/icons/hiba-vol-3/512/description-512.png"
 
                     if keyword not in frequency_dict:
-                        frequency_dict[keyword] = [d]
+                        frequency_dict[keyword] = {
+                            "weight": weights[idx],
+                            "data": [d]
+                        }
                     else:
-                        if d['title'] not in [i['title'] for i in frequency_dict[keyword]]:  # Don't include duplicates
-                            frequency_dict[keyword].append(d)
+                        if d['title'] not in [i['title'] for i in frequency_dict[keyword]["data"]]:  # Don't include duplicates
+                            frequency_dict[keyword]["data"].append(d)
 
             except:
                 traceback.print_exc()
@@ -231,7 +237,7 @@ def feed_articles(user_id):
         try:
             sparql.setMethod(GET)
             sparql.setQuery("""
-                SELECT ?feedLink ?dismissed
+                SELECT ?feedLink
                 %s
                 WHERE {
                         ?feedLink rdf:type sioc:Post;
@@ -244,12 +250,12 @@ def feed_articles(user_id):
             results = sparql.query().convert()
             for result in results["results"]["bindings"]:
                 for keyword in list(frequency_dict):  # We need a copy of it
-                    for index, item in enumerate(frequency_dict[keyword]):
+                    for index, item in enumerate(frequency_dict[keyword]["data"]):
                         if item['link'] == result["feedLink"]["value"]:
-                            if len(frequency_dict[keyword]) == 1:
+                            if len(frequency_dict[keyword]["data"]) == 1:
                                 del frequency_dict[keyword]
                             else:
-                                del frequency_dict[keyword][index]
+                                del frequency_dict[keyword]["data"][index]
 
                             break
 
@@ -259,8 +265,8 @@ def feed_articles(user_id):
             # pp.pprint(frequency_dict)
             if len(frequency_dict):  # We have at least one new article for the user_id
                 query = ""
-                for key, values in frequency_dict.iteritems():
-                    for item in values:
+                for key in frequency_dict:
+                    for item in frequency_dict[key]["data"]:
                         query += """
                         <%s> rdf:type sioc:Post;
                                 dcterms:title '%s';
@@ -294,10 +300,12 @@ def feed_articles(user_id):
         except:
             traceback.print_exc()
 
-    sorted_dict = dict(sorted(frequency_dict.iteritems(),
-                              key=lambda x: lambda y: x[y]['weight'], reverse=True))
+    return jsonify(OrderedDict(sorted(frequency_dict.iteritems(), key=lambda x: x[1]['weight'])))
 
-    return jsonify(sorted_dict)  # jsonify formats formats json and add Content-Type: plain-text/json
+    # sorted_dict = dict(sorted(frequency_dict.iteritems(),
+    #                           key=lambda x: lambda y: x[y]['weight'], reverse=True))
+
+    # return jsonify(sorted_dict)  # jsonify formats formats json and add Content-Type: plain-text/json
 
 
 @app.route('/feeder/<string:user_id>', methods=['GET'])
