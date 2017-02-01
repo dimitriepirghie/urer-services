@@ -58,7 +58,7 @@ def facebook_insert_follow(urrer_id_me, urrer_id_friend):
     query_format = """
         INSERT DATA {{
             GRAPH <https://urrer.me/users> {{
-              <https://urer-client.local.revenew.nl/user/{}> sioc:follows <https://urer-client.local.revenew.nl/user/{}>
+              <https://urrer.me/user/{}> sioc:follows <https://urrer.me/user/{}>
             }}
         }}
         """

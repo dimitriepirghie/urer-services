@@ -1,9 +1,11 @@
 from __future__ import print_function
-from flask import Flask, redirect, url_for, session, request, abort, jsonify
+from flask import Flask, redirect, url_for, session, request, abort, jsonify, current_app, make_response
 from flask_oauthlib.client import OAuth, OAuthException
 from SPARQLWrapper import SPARQLWrapper, JSON, POST, GET
 from RDFQueries import facebook_link_account_query, facebook_select_user_by_fb_id, facebook_insert_follow
 import harvest_facebook as harvest_fb
+from datetime import timedelta
+from functools import update_wrapper
 
 FACEBOOK_APP_ID = '1266953439991986'
 FACEBOOK_APP_SECRET = '8cefcc09304059e1139f54f9fb03e20d'
@@ -57,9 +59,52 @@ facebook = oauth.remote_app(
 )
 
 
+def crossdomain(origin=None, methods=None, headers=None,
+                max_age=21600, attach_to_all=True,
+                automatic_options=True):
+    if methods is not None:
+        methods = ', '.join(sorted(x.upper() for x in methods))
+    if headers is not None and not isinstance(headers, basestring):
+        headers = ', '.join(x.upper() for x in headers)
+    if not isinstance(origin, basestring):
+        origin = ', '.join(origin)
+    if isinstance(max_age, timedelta):
+        max_age = max_age.total_seconds()
+
+    def get_methods():
+        if methods is not None:
+            return methods
+
+        options_resp = current_app.make_default_options_response()
+        return options_resp.headers['allow']
+
+    def decorator(f):
+        def wrapped_function(*args, **kwargs):
+            if automatic_options and request.method == 'OPTIONS':
+                resp = current_app.make_default_options_response()
+            else:
+                resp = make_response(f(*args, **kwargs))
+            if not attach_to_all and request.method != 'OPTIONS':
+                return resp
+
+            h = resp.headers
+
+            h['Access-Control-Allow-Origin'] = origin
+            h['Access-Control-Allow-Methods'] = get_methods()
+            h['Access-Control-Max-Age'] = str(max_age)
+            if headers is not None:
+                h['Access-Control-Allow-Headers'] = headers
+            return resp
+
+        f.provide_automatic_options = False
+        return update_wrapper(wrapped_function, f)
+    return decorator
+
+
 @app.after_request
 def after_request_cross_origin(response):
     response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', '*')
     return response
 
 
@@ -85,7 +130,9 @@ def login():
     return facebook_authorization
 
 
+# http://flask.pocoo.org/snippets/56/
 @app.route('/facebook/interests', methods=["POST"])
+# @crossdomain(origin='*', headers=["Access-Control-Allow-Headers"])
 def interests():
     if not request.json:
         abort(400)
