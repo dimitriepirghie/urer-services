@@ -68,7 +68,7 @@ def harvest_facebook(keywords):
 
                 posts[keyword] = {
                     "name": keyword,
-                    "messages": normalized_posts[:10],
+                    "messages": normalized_posts[:5],
                     "image_url": image_url_result
                 }
 
