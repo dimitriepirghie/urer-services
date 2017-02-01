@@ -11,8 +11,8 @@ from SPARQLWrapper import SPARQLWrapper, JSON, POST, GET  # , POSTDIRECTLY
 
 from rss_lists import rss_full_list as __rss_full_list
 
-# ENDPOINT_URL = "https://dydra.com/dimavascan94/test/sparql"
-ENDPOINT_URL = "https://dydra.com/dimavascan94/urer/sparql"
+ENDPOINT_URL = "https://dydra.com/dimavascan94/test/sparql"
+# ENDPOINT_URL = "https://dydra.com/dimavascan94/urer/sparql"
 
 sparql = SPARQLWrapper(ENDPOINT_URL)
 sparql.setReturnFormat(JSON)
@@ -79,17 +79,33 @@ def set_insert_query_graph(query):
 
 
 # TODO: Implement specific filtering for each category (computer, art, etc.)
-def feed_articles(user_id, keywords):
+def feed_articles(user_id):
     feeds_copy = __backup_feeds
     if not feeds_copy:  # If the crawler thread is not running right now...
         feeds_copy = __feeds_
 
     frequency_dict = dict()
 
+    sparql.setMethod(GET)
+    sparql.setQuery("""
+        PREFIX wi: <http://xmlns.notu.be/wi#>
+        SELECT ?interest ?weight
+        %s
+        WHERE {
+            '%s' wi:preference ?uniqueInterestID.
+            ?uniqueInterestID wi:topic ?interest;
+                              wi:weight ?weight.
+        }
+    """ % (set_select_query_graph(), user_id))
+
+    results = sparql.query().convert()
+    keywords = [i["interest"]["value"] for i in results["results"]["bindings"]]
+    weights = [int(i["weight"]["value"]) for i in results["results"]["bindings"]]
+
     for feed in feeds_copy:
         for entry in feed["entries"]:
             try:
-                for keyword in keywords:
+                for idx, keyword in enumerate(keywords):
                     d = {
                         "description": entry['title'],
                     }
@@ -125,6 +141,7 @@ def feed_articles(user_id, keywords):
                         # 'frequency': frequency,
                         'title': entry['title'],
                         'link': entry['link'],
+                        'weight': weights[idx],
                     })
 
                     d['published_time'] = entry.get('published') or entry.get('updated')  # or None :)
@@ -192,7 +209,7 @@ def feed_articles(user_id, keywords):
                         query += """
                         <%s> rdf:type sioc:Post;
                                 dcterms:title '%s';
-                                sioc:has_creator '%d';
+                                sioc:has_creator '%s';
                                 dc:description '%s';
                                 dcterms:created '%s';
                                 dc:source '%s';
@@ -209,7 +226,7 @@ def feed_articles(user_id, keywords):
                             unicode(item["image"]).replace('\\', '\\\\').replace('\'', '\\\''),
                             unicode(key).replace('\\', '\\\\').replace('\'', '\\\''),
                         )
-                        __import__("sys").stderr.write(unicode(item["from"]).replace('\\', '\\\\').replace('\'', '\\\'') if (item["from"]) is not None and item["from"] != "" else ur"UReR")
+                        # __import__("sys").stderr.write(unicode(item["from"]).replace('\\', '\\\\').replace('\'', '\\\'') if (item["from"]) is not None and item["from"] != "" else ur"UReR")
 
                 # sparql.setRequestMethod(POSTDIRECTLY)
                 sparql.setMethod(POST)
@@ -223,7 +240,7 @@ def feed_articles(user_id, keywords):
             traceback.print_exc()
 
     sorted_dict = dict(sorted(frequency_dict.iteritems(),
-                              key=lambda x: lambda y: x[y]['frequency'], reverse=True))
+                              key=lambda x: lambda y: x[y]['weight'], reverse=True))
 
     return jsonify(sorted_dict)  # jsonify formats formats json and add Content-Type: plain-text/json
 
@@ -233,12 +250,10 @@ def feeder():
     if not request.json:
         abort(400)
 
-    if 'user_id' not in request.json or 'keywords' not in request.json:
+    if 'user_id' not in request.json:
         abort(422)  # The 422 (Unprocessable Entity) status code means the server understands the content type of the request entity (hence a 415(Unsupported Media Type) status code is inappropriate), and the syntax of the request entity is correct (thus a 400 (Bad Request) status code is inappropriate) but was unable to process the contained instructions. For example, this error condition may occur if an XML request body contains well-formed (i.e., syntactically correct), but semantically erroneous, XML instructions.
 
-    user_id = int(request.json['user_id'])
-
-    return feed_articles(user_id, request.json["keywords"])
+    return feed_articles(request.json['user_id'])
 
 
 if __name__ == "__main__":
