@@ -102,8 +102,63 @@ def feed_articles(user_id):
     keywords = [i["interest"]["value"] for i in results["results"]["bindings"]]
     weights = [int(i["weight"]["value"]) for i in results["results"]["bindings"]]
 
+    sparql.setMethod(GET)
+    sparql.setQuery("""
+        SELECT ?feedLink ?title ?description ?creationDate ?sourceLink ?attachment ?interest ?dismissed
+        %s
+        WHERE {
+                ?feedLink rdf:type sioc:Post;
+                            sioc:has_creator '%s';
+                            dcterms:title ?title;
+                            dc:description ?description;
+                            dcterms:created ?creationDate;
+                            dc:source ?sourceLink;
+                            sioc:attachment ?attachment;
+                            sioc:topic ?interest;
+                OPTIONAL { ?y sioc:has_modifier '%s'; . FILTER (?feedLink = ?y) . }
+                FILTER ( !BOUND(?y) )
+             }
+
+    """ % (set_select_query_graph(), user_id, user_id))
+
+    results = sparql.query().convert()
+
+    for result in results["results"]["bindings"]:
+        keyword = result["interest"]["value"]
+        d = {
+            "link": result["feedLink"]["value"],
+            "title": result["title"]["value"],
+            "description": result["description"]["value"],
+            # weight?
+            "creation_time": result["creationDate"]["value"],
+            "from": result["sourceLink"]["value"],
+            "image": result["attachment"]["value"],
+        }
+        if keyword not in frequency_dict:
+            frequency_dict[keyword] = [d]
+        else:
+            frequency_dict[keyword].append(d)
+
     for feed in feeds_copy:
         for entry in feed["entries"]:
+            already_exists = False
+            for keyword in list(frequency_dict):  # We need a copy of it
+                if already_exists:
+                    break
+
+                for index, item in enumerate(frequency_dict[keyword]):
+                    if item['link'] == entry["link"]:
+                        if len(frequency_dict[keyword]) == 1:
+                            del frequency_dict[keyword]
+                        else:
+                            del frequency_dict[keyword][index]
+
+                        already_exists = True
+                        break
+
+            if already_exists:
+                continue
+
             try:
                 for idx, keyword in enumerate(keywords):
                     d = {
@@ -142,9 +197,10 @@ def feed_articles(user_id):
                         'title': entry['title'],
                         'link': entry['link'],
                         'weight': weights[idx],
+                        'creation_time': strftime("%Y-%m-%d %H:%M:%S", gmtime()),
                     })
 
-                    d['published_time'] = entry.get('published') or entry.get('updated')  # or None :)
+                    # d['published_time'] = entry.get('published') or entry.get('updated')  # or None :)
                     d['from'] = entry.get('source', {}).get('href', ur"UReR")
 
                     try:
@@ -186,7 +242,6 @@ def feed_articles(user_id):
             """ % (set_select_query_graph(), user_id, user_id))
 
             results = sparql.query().convert()
-
             for result in results["results"]["bindings"]:
                 for keyword in list(frequency_dict):  # We need a copy of it
                     for index, item in enumerate(frequency_dict[keyword]):
@@ -221,7 +276,7 @@ def feed_articles(user_id):
                             unicode(item["title"]).replace('\\', '\\\\').replace('\'', '\\\''),
                             user_id,
                             unicode(item["description"]).replace('\\', '\\\\').replace('\'', '\\\''),
-                            strftime("%Y-%m-%d %H:%M:%S", gmtime()),  # item["published_time"],
+                            item["creation_time"],
                             unicode(item["from"]).replace('\\', '\\\\').replace('\'', '\\\''),
                             unicode(item["image"]).replace('\\', '\\\\').replace('\'', '\\\''),
                             unicode(key).replace('\\', '\\\\').replace('\'', '\\\''),
@@ -245,15 +300,19 @@ def feed_articles(user_id):
     return jsonify(sorted_dict)  # jsonify formats formats json and add Content-Type: plain-text/json
 
 
-@app.route('/feeder', methods=['POST'])
-def feeder():
-    if not request.json:
+@app.route('/feeder/<string:user_id>', methods=['GET'])
+def feeder(user_id):
+    # if not request.json:
+    #     abort(400)
+
+    # if 'user_id' not in request.json:
+    #     abort(422)  # The 422 (Unprocessable Entity) status code means the server understands the content type of the request entity (hence a 415(Unsupported Media Type) status code is inappropriate), and the syntax of the request entity is correct (thus a 400 (Bad Request) status code is inappropriate) but was unable to process the contained instructions. For example, this error condition may occur if an XML request body contains well-formed (i.e., syntactically correct), but semantically erroneous, XML instructions.
+
+    # return feed_articles(request.json['user_id'])
+    if not user_id:
         abort(400)
 
-    if 'user_id' not in request.json:
-        abort(422)  # The 422 (Unprocessable Entity) status code means the server understands the content type of the request entity (hence a 415(Unsupported Media Type) status code is inappropriate), and the syntax of the request entity is correct (thus a 400 (Bad Request) status code is inappropriate) but was unable to process the contained instructions. For example, this error condition may occur if an XML request body contains well-formed (i.e., syntactically correct), but semantically erroneous, XML instructions.
-
-    return feed_articles(request.json['user_id'])
+    return feed_articles(user_id)
 
 
 if __name__ == "__main__":
