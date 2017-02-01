@@ -106,7 +106,7 @@ def feed_articles(user_id):
     sparql.setMethod(GET)
     sparql.setQuery("""
         PREFIX wi: <http://xmlns.notu.be/wi#>
-        SELECT ?feedLink ?title ?description ?creationDate ?sourceLink ?attachment ?interest ?weight
+        SELECT ?feedLink ?title ?description ?creationDate ?sourceLink ?attachment ?interest #?weight
         %s
         WHERE {
                 ?feedLink rdf:type sioc:Post;
@@ -117,8 +117,8 @@ def feed_articles(user_id):
                             dc:source ?sourceLink;
                             sioc:attachment ?attachment;
                             sioc:topic ?interest.
-                    '%s' wi:preference ?uniquePreferenceURL.
-                    ?uniquePreferenceURL wi:weight ?weight.
+                    #'%s' wi:preference ?uniquePreferenceURL.
+                    #?uniquePreferenceURL wi:weight ?weight.
                 OPTIONAL { ?y sioc:has_modifier '%s'; . FILTER (?feedLink = ?y) . }
                 FILTER ( !BOUND(?y) )
              }
@@ -139,7 +139,7 @@ def feed_articles(user_id):
         }
         if keyword not in frequency_dict:
             frequency_dict[keyword] = {
-                "weight": result["weight"]["value"],
+                "weight": weights[keywords.index(keyword)],
                 "data": [d]
             }
         else:
