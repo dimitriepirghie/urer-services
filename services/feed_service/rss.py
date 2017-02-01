@@ -12,8 +12,8 @@ from SPARQLWrapper import SPARQLWrapper, JSON, POST, GET  # , POSTDIRECTLY
 
 from rss_lists import rss_full_list as __rss_full_list
 
-ENDPOINT_URL = "https://dydra.com/dimavascan94/test/sparql"
-# ENDPOINT_URL = "https://dydra.com/dimavascan94/urer/sparql"
+# ENDPOINT_URL = "https://dydra.com/dimavascan94/test/sparql"
+ENDPOINT_URL = "https://dydra.com/dimavascan94/urer/sparql"
 
 sparql = SPARQLWrapper(ENDPOINT_URL)
 sparql.setReturnFormat(JSON)
