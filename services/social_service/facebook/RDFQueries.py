@@ -21,7 +21,7 @@ def facebook_link_account_query(rdf_unique_top_string, urrer_uuid,
     
     query_format = """
     INSERT DATA {{
-        GRAPH <https://urrer.me/users> { 
+        GRAPH <https://urrer.me/users> {{
             {}
             rdf:type sioc:UserAccount;
             sioc:account_of '{}';
@@ -30,7 +30,7 @@ def facebook_link_account_query(rdf_unique_top_string, urrer_uuid,
             foaf:name '{}';
             foaf:accountName '{}';
             sioc:avatar '{}';
-        }
+        }}
     }}
     """
     query_string = query_format.format(unicode(rdf_unique_top_string), unicode(urrer_uuid),
@@ -57,9 +57,9 @@ def facebook_insert_follow(urrer_id_me, urrer_id_friend):
 
     query_format = """
         INSERT DATA {{
-            GRAPH <https://urrer.me/users> { 
+            GRAPH <https://urrer.me/users> {{
               <https://urer-client.local.revenew.nl/user/{}> sioc:follows <https://urer-client.local.revenew.nl/user/{}>
-            }
+            }}
         }}
         """
     query_string = query_format.format(unicode(urrer_id_me),

@@ -57,6 +57,12 @@ facebook = oauth.remote_app(
 )
 
 
+@app.after_request
+def after_request_cross_origin(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
+
+
 # TODO: Check methods only to POST
 @app.route('/facebook/<urer_uuid>')# , methods=['POST'])
 def index(urer_uuid):
